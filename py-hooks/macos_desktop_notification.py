@@ -5,12 +5,14 @@
 #     "cchooks",
 # ]
 # ///
+# event: Notification
+# matcher: *
 
 import os
 from cchooks import create_context, NotificationContext
 
 c = create_context()
 assert isinstance(c, NotificationContext)
-
-# Requires https://github.com/julienXX/terminal-notifier
-_ = os.system(f'terminal-notifier -title Claude Code -message "{c.message}"')
+if "permission" in c.message.lower():
+    # Requires https://github.com/julienXX/terminal-notifier
+    _ = os.system(f'terminal-notifier -title Claude Code -message "{c.message}"')
