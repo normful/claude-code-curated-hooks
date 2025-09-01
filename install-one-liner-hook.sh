@@ -111,8 +111,8 @@ install_hook() {
 
     # Normalize matcher (use null for no matcher)
     local matcher_value="${HOOK_MATCHER:-null}"
-    
-    # Single unified operation: find matching entry or create new one
+
+    # Find matching entry or create new one
     local temp_file=$(mktemp)
     jq --arg event "$HOOK_EVENT" \
        --argjson matcher "$([[ "$matcher_value" == "null" ]] && echo "null" || echo "\"$HOOK_MATCHER\"")" \
@@ -121,12 +121,12 @@ install_hook() {
        # Ensure hooks structure exists
        .hooks = (.hooks // {}) |
        .hooks[$event] = (.hooks[$event] // []) |
-       
+
        # Find existing entry that matches our criteria
        if (.hooks[$event] | map(
-           if $matcher == null then 
+           if $matcher == null then
                (has("matcher") | not)
-           else 
+           else
                (.matcher == $matcher)
            end
        ) | any) then
@@ -149,7 +149,7 @@ install_hook() {
            ]
        end
        ' "$settings_file" > "$temp_file"
-    
+
     if [[ $? -eq 0 ]]; then
         mv "$temp_file" "$settings_file"
         echo
@@ -175,7 +175,7 @@ check_dependencies() {
 
 main() {
     check_dependencies
-    
+
     list_available_scripts
 
     local script_name
