@@ -150,7 +150,7 @@ install_hook() {
         mv "$temp_file" "$settings_file"
         echo
         echo "✓ Hook successfully installed! Hooks in $settings_file now look like:"
-        # TODO: Print the .hooks property of the $settings_file at this step
+        jq '.hooks' "$settings_file"
     else
         rm -f "$temp_file"
         echo "Error: Failed to install hook." >&2
