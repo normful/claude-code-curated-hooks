@@ -52,6 +52,13 @@ EOF
 print("Test post-tool hook")
 EOF
 
+    cat > "$TEST_PY_HOOKS_DIR/test-no-matcher.py" << 'EOF'
+#!/usr/bin/env python3
+# event: PreToolUse
+
+print("Test hook without matcher")
+EOF
+
     # Change to test directory
     cd "$TEST_DIR"
 }
@@ -66,7 +73,7 @@ function teardown() {
 function test_get_available_scripts_returns_all_script_files_in_directory() {
     setup
     local result=$(get_available_scripts | sort)
-    local expected=$'one-liners/test-script1.sh\none-liners/test-script2.sh\none-liners/test-script3.sh\npy-hooks/test-notification.py\npy-hooks/test-posttool.py'
+    local expected=$'one-liners/test-script1.sh\none-liners/test-script2.sh\none-liners/test-script3.sh\npy-hooks/test-no-matcher.py\npy-hooks/test-notification.py\npy-hooks/test-posttool.py'
     assert_same "$expected" "$result"
     teardown
 }
@@ -125,6 +132,26 @@ function test_extract_script_metadata_handles_python_files() {
     assert_same "Notification" "$HOOK_EVENT"
     assert_same "*" "$HOOK_MATCHER"
     assert_same "$TEST_DIR/py-hooks/test-notification.py" "$HOOK_COMMAND"
+    teardown
+}
+
+function test_extract_script_metadata_handles_python_files_without_matcher() {
+    setup
+    extract_script_metadata "py-hooks/test-no-matcher.py"
+
+    assert_same "PreToolUse" "$HOOK_EVENT"
+    assert_same "" "$HOOK_MATCHER"
+    assert_same "$TEST_DIR/py-hooks/test-no-matcher.py" "$HOOK_COMMAND"
+    teardown
+}
+
+function test_extract_script_metadata_handles_different_python_events() {
+    setup
+    extract_script_metadata "py-hooks/test-posttool.py"
+
+    assert_same "PostToolUse" "$HOOK_EVENT"
+    assert_same "Write" "$HOOK_MATCHER"
+    assert_same "$TEST_DIR/py-hooks/test-posttool.py" "$HOOK_COMMAND"
     teardown
 }
 
@@ -309,13 +336,24 @@ function test_get_user_choice_returns_correct_script_for_valid_input() {
     teardown
 }
 
+function test_get_user_choice_returns_python_script_for_valid_input() {
+    setup
+
+    # Test valid choice: script 5 (should be a python script)
+    local user_choice
+    user_choice=$(echo "5" | get_user_choice 2>/dev/null | tr -d '\n\r ')
+    assert_same "py-hooks/test-notification.py" "$user_choice"
+
+    teardown
+}
+
 function test_get_user_choice_fails_for_invalid_input() {
     setup
 
-    # Test invalid choice: script 6 (only 5 scripts exist now)
+    # Test invalid choice: script 7 (only 6 scripts exist now)
     local choice_output
     set +e
-    choice_output=$(echo "6" | get_user_choice 2>&1)
+    choice_output=$(echo "7" | get_user_choice 2>&1)
     local exit_code=$?
     set -e
 
