@@ -1,0 +1,3 @@
+# event: PostToolUse
+# matcher: Write|Edit|MultiEdit
+jq -r '.tool_input.file_path | select(endswith(\".go\"))' | xargs -r -I {} sh -c 'gofmt -w \"$1\" && goimports -w \"$1\"' _ {}
