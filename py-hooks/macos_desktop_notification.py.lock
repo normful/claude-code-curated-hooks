@@ -1,0 +1,15 @@
+version = 1
+revision = 3
+requires-python = ">=3.8"
+
+[manifest]
+requirements = [{ name = "cchooks" }]
+
+[[package]]
+name = "cchooks"
+version = "0.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2d/56/ef2071dafb891798ec91b4369ce0f04a876794b3daea2a1cf4bb253a6c7d/cchooks-0.1.4.tar.gz", hash = "sha256:9cd66c145eb429db44e24f9394d34698afae8a3bce0070ec92e5de5529d7267a", size = 26422, upload-time = "2025-08-23T04:09:50.207Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/0b/2a0d1779412b6d6b0a9aad3343676242b7d7291a22239216855e54a35d37/cchooks-0.1.4-py3-none-any.whl", hash = "sha256:9424a7de9bdfa0c474a982adb7b7b5a2c1c26f349f96b63bfe9db16da8940db6", size = 25683, upload-time = "2025-08-23T04:09:49.423Z" },
+]
