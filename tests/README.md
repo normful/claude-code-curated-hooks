@@ -25,7 +25,7 @@ This directory contains unit tests for the `install-one-liner-hook.sh` script us
 
 The test suite covers the following functions from `install-one-liner-hook.sh`:
 
-- **`get_available_scripts()`**: Tests listing of available scripts in the `one-liner-shell-scripts/` directory
+- **`get_available_scripts()`**: Tests listing of available scripts in the `one-liners/` directory
 - **`extract_script_metadata()`**: Tests parsing of script metadata (event, matcher, command) from script files
 - **`choose_installation_location()`**: Tests user input handling for choosing settings file location
 - **`install_hook()`**: Tests JSON manipulation and hook installation logic
@@ -41,4 +41,4 @@ Each test function follows the bashunit convention:
 
 ## Test Data
 
-Tests create temporary directories and mock script files to avoid dependencies on the actual `one-liner-shell-scripts/` directory content.
+Tests create temporary directories and mock script files to avoid dependencies on the actual `one-liners/` directory content.

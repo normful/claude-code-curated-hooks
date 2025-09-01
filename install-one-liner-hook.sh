@@ -8,7 +8,7 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 get_available_scripts() {
-    ls "$SCRIPT_DIR/one-liner-shell-scripts/"
+    ls "$SCRIPT_DIR/one-liners/"
 }
 
 list_available_scripts() {
@@ -43,7 +43,7 @@ extract_script_metadata() {
     local script_name="$1"
     # Strip any remaining whitespace/newlines
     script_name=$(echo "$script_name" | tr -d '\n\r ')
-    local script_path="$SCRIPT_DIR/one-liner-shell-scripts/$script_name"
+    local script_path="$SCRIPT_DIR/one-liners/$script_name"
 
     local event=$(sed -n '1s/^# event: //p' "$script_path")
     local matcher=$(sed -n '2s/^# matcher: //p' "$script_path")

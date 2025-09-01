@@ -8,7 +8,7 @@ source <(sed '/^main$/,$d' "$SCRIPT_DIR/install-one-liner-hook.sh")
 function setup() {
     # Create temporary test directories
     TEST_DIR=$(mktemp -d)
-    TEST_SCRIPTS_DIR="$TEST_DIR/one-liner-shell-scripts"
+    TEST_SCRIPTS_DIR="$TEST_DIR/one-liners"
     mkdir -p "$TEST_SCRIPTS_DIR"
 
     # Override SCRIPT_DIR to point to test directory
@@ -54,7 +54,7 @@ function test_get_available_scripts_returns_all_script_files_in_directory() {
 
 function test_get_available_scripts_returns_empty_when_no_scripts_exist() {
     TEST_DIR=$(mktemp -d)
-    mkdir -p "$TEST_DIR/one-liner-shell-scripts"
+    mkdir -p "$TEST_DIR/one-liners"
     cd "$TEST_DIR"
 
     # Override SCRIPT_DIR for this test
