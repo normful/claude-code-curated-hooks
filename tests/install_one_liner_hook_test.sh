@@ -44,7 +44,7 @@ function teardown() {
 }
 
 # Tests for get_available_scripts function
-function test_get_available_scripts_lists_files() {
+function test_get_available_scripts_returns_all_script_files_in_directory() {
     setup
     local result=$(get_available_scripts | sort)
     local expected=$'test-script1.sh\ntest-script2.sh\ntest-script3.sh'
@@ -52,7 +52,7 @@ function test_get_available_scripts_lists_files() {
     teardown
 }
 
-function test_get_available_scripts_empty_directory() {
+function test_get_available_scripts_returns_empty_when_no_scripts_exist() {
     TEST_DIR=$(mktemp -d)
     mkdir -p "$TEST_DIR/one-liner-shell-scripts"
     cd "$TEST_DIR"
@@ -68,7 +68,7 @@ function test_get_available_scripts_empty_directory() {
 }
 
 # Tests for extract_script_metadata function
-function test_extract_script_metadata_with_matcher() {
+function test_extract_script_metadata_parses_event_matcher_and_command_correctly() {
     setup
     extract_script_metadata "test-script1.sh"
     
@@ -78,7 +78,7 @@ function test_extract_script_metadata_with_matcher() {
     teardown
 }
 
-function test_extract_script_metadata_no_matcher() {
+function test_extract_script_metadata_handles_missing_matcher_gracefully() {
     setup
     extract_script_metadata "test-script3.sh"
     
@@ -88,7 +88,7 @@ function test_extract_script_metadata_no_matcher() {
     teardown
 }
 
-function test_extract_script_metadata_with_different_event() {
+function test_extract_script_metadata_supports_different_hook_events() {
     setup
     extract_script_metadata "test-script2.sh"
     
@@ -99,7 +99,7 @@ function test_extract_script_metadata_with_different_event() {
 }
 
 # Tests for check_dependencies function
-function test_check_dependencies_jq_available() {
+function test_check_dependencies_validates_jq_installation() {
     if command -v jq >/dev/null 2>&1; then
         # jq is available, function should succeed
         assert_successful_code "check_dependencies"
@@ -110,7 +110,7 @@ function test_check_dependencies_jq_available() {
 }
 
 # Tests for install_hook function - these require more complex setup
-function test_install_hook_creates_new_file() {
+function test_install_hook_creates_new_settings_file_when_none_exists() {
     TEST_DIR=$(mktemp -d)
     TEST_SETTINGS="$TEST_DIR/test-settings.json"
     
@@ -133,7 +133,7 @@ function test_install_hook_creates_new_file() {
     rm -rf "$TEST_DIR"
 }
 
-function test_install_hook_adds_to_existing_entry() {
+function test_install_hook_appends_command_to_existing_matcher_entry() {
     TEST_DIR=$(mktemp -d)
     TEST_SETTINGS="$TEST_DIR/test-settings.json"
     
@@ -174,7 +174,7 @@ EOF
     rm -rf "$TEST_DIR"
 }
 
-function test_install_hook_creates_new_entry_different_matcher() {
+function test_install_hook_creates_separate_entry_for_different_matcher() {
     TEST_DIR=$(mktemp -d)
     TEST_SETTINGS="$TEST_DIR/test-settings.json"
     
@@ -215,7 +215,7 @@ EOF
     rm -rf "$TEST_DIR"
 }
 
-function test_install_hook_no_matcher() {
+function test_install_hook_creates_entry_without_matcher_when_not_specified() {
     TEST_DIR=$(mktemp -d)
     TEST_SETTINGS="$TEST_DIR/test-settings.json"
     
@@ -237,26 +237,26 @@ function test_install_hook_no_matcher() {
 }
 
 # Tests for choose_installation_location function (using input simulation)
-function test_choose_installation_location_option_1() {
+function test_choose_installation_location_selects_local_settings_for_option_1() {
     # Mock user input: choose option 1
     echo "1" | choose_installation_location >/dev/null 2>&1
     local result=$(echo "1" | choose_installation_location 2>/dev/null)
     assert_same "$(pwd)/.claude/settings.local.json" "$result"
 }
 
-function test_choose_installation_location_option_2() {
+function test_choose_installation_location_selects_project_settings_for_option_2() {
     # Mock user input: choose option 2
     local result=$(echo "2" | choose_installation_location 2>/dev/null)
     assert_same "$(pwd)/.claude/settings.json" "$result"
 }
 
-function test_choose_installation_location_option_3() {
+function test_choose_installation_location_selects_global_settings_for_option_3() {
     # Mock user input: choose option 3
     local result=$(echo "3" | choose_installation_location 2>/dev/null)
     assert_same "$HOME/.claude/settings.json" "$result"
 }
 
-function test_choose_installation_location_invalid_option() {
+function test_choose_installation_location_exits_with_error_for_invalid_choice() {
     # Mock invalid input - this should exit with code 1
     local output
     set +e  # Temporarily disable exit on error
@@ -268,7 +268,7 @@ function test_choose_installation_location_invalid_option() {
 }
 
 # Integration test - simulates the full workflow without user interaction
-function test_full_workflow_simulation() {
+function test_full_workflow_integrates_all_functions_successfully() {
     setup
     
     # Test that we can get scripts
