@@ -50,12 +50,8 @@ extract_script_metadata() {
     local command=$(sed -n '3p' "$script_path")
 
     echo "Selected: $script_name"
-    echo
-    echo "Event: $event"
-    echo "Matcher: $matcher"
-    echo "Command: $command"
 
-    # Return the extracted values
+    # Save the extracted values
     HOOK_EVENT="$event"
     HOOK_MATCHER="$matcher"
     HOOK_COMMAND="$command"
@@ -95,9 +91,6 @@ install_hook() {
 
     echo
     echo "Installing hook to: $settings_file"
-    echo "Event: $HOOK_EVENT"
-    echo "Matcher: $HOOK_MATCHER"
-    echo "Command: $HOOK_COMMAND"
 
     # Create directory if it doesn't exist
     local settings_dir=$(dirname "$settings_file")
@@ -156,11 +149,8 @@ install_hook() {
     if [[ $? -eq 0 ]]; then
         mv "$temp_file" "$settings_file"
         echo
-        echo "✓ Hook successfully installed!"
-        echo "  Event: $HOOK_EVENT"
-        echo "  Matcher: $HOOK_MATCHER"
-        echo "  Command: $HOOK_COMMAND"
-        echo "  Location: $settings_file"
+        echo "✓ Hook successfully installed! Hooks in $settings_file now look like:"
+        # TODO: Print the .hooks property of the $settings_file at this step
     else
         rm -f "$temp_file"
         echo "Error: Failed to install hook." >&2
