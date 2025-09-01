@@ -2,35 +2,54 @@
 
 # Source the script to test (without executing main)
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")/.."
-source <(sed '/^main$/,$d' "$SCRIPT_DIR/install-one-liner-hook.sh")
+source <(sed '/^main$/,$d' "$SCRIPT_DIR/install-hook.sh")
 
 # Test setup function
 function setup() {
     # Create temporary test directories
     TEST_DIR=$(mktemp -d)
-    TEST_SCRIPTS_DIR="$TEST_DIR/one-liners"
-    mkdir -p "$TEST_SCRIPTS_DIR"
+    TEST_ONE_LINER_SCRIPTS_DIR="$TEST_DIR/one-liners"
+    TEST_PY_HOOKS_DIR="$TEST_DIR/py-hooks"
+    mkdir -p "$TEST_ONE_LINER_SCRIPTS_DIR"
+    mkdir -p "$TEST_PY_HOOKS_DIR"
 
     # Override SCRIPT_DIR to point to test directory
     SCRIPT_DIR="$TEST_DIR"
 
     # Create test script files
-    cat > "$TEST_SCRIPTS_DIR/test-script1.sh" << 'EOF'
+    cat > "$TEST_ONE_LINER_SCRIPTS_DIR/test-script1.sh" << 'EOF'
 # event: PostToolUse
 # matcher: Write|Edit
 echo "Complex command with spaces & special chars: $HOME/path with spaces/*.txt" | grep -E "pattern.*"
 EOF
 
-    cat > "$TEST_SCRIPTS_DIR/test-script2.sh" << 'EOF'
+    cat > "$TEST_ONE_LINER_SCRIPTS_DIR/test-script2.sh" << 'EOF'
 # event: PreToolUse
 # matcher: Read
 curl -H "Content-Type: application/json" -d '{"key": "value with \"quotes\"", "path": "/tmp/file name.txt"}' https://api.example.com/webhook
 EOF
 
-    cat > "$TEST_SCRIPTS_DIR/test-script3.sh" << 'EOF'
+    cat > "$TEST_ONE_LINER_SCRIPTS_DIR/test-script3.sh" << 'EOF'
 # event: PostToolUse
 # matcher:
 python3 -c "import os; print(f'Processing file: {os.environ.get(\"FILE_PATH\", \"default.txt\")}'); os.system('ls -la \"$PWD\"')"
+EOF
+
+    # Create test Python hook files
+    cat > "$TEST_PY_HOOKS_DIR/test-notification.py" << 'EOF'
+#!/usr/bin/env python3
+# event: Notification
+# matcher: *
+
+print("Test notification hook")
+EOF
+
+    cat > "$TEST_PY_HOOKS_DIR/test-posttool.py" << 'EOF'
+#!/usr/bin/env python3
+# event: PostToolUse
+# matcher: Write
+
+print("Test post-tool hook")
 EOF
 
     # Change to test directory
@@ -47,7 +66,7 @@ function teardown() {
 function test_get_available_scripts_returns_all_script_files_in_directory() {
     setup
     local result=$(get_available_scripts | sort)
-    local expected=$'test-script1.sh\ntest-script2.sh\ntest-script3.sh'
+    local expected=$'one-liners/test-script1.sh\none-liners/test-script2.sh\none-liners/test-script3.sh\npy-hooks/test-notification.py\npy-hooks/test-posttool.py'
     assert_same "$expected" "$result"
     teardown
 }
@@ -55,6 +74,7 @@ function test_get_available_scripts_returns_all_script_files_in_directory() {
 function test_get_available_scripts_returns_empty_when_no_scripts_exist() {
     TEST_DIR=$(mktemp -d)
     mkdir -p "$TEST_DIR/one-liners"
+    mkdir -p "$TEST_DIR/py-hooks"
     cd "$TEST_DIR"
 
     # Override SCRIPT_DIR for this test
@@ -70,7 +90,7 @@ function test_get_available_scripts_returns_empty_when_no_scripts_exist() {
 # Tests for extract_script_metadata function
 function test_extract_script_metadata_parses_event_matcher_and_command_correctly() {
     setup
-    extract_script_metadata "test-script1.sh"
+    extract_script_metadata "one-liners/test-script1.sh"
 
     assert_same "PostToolUse" "$HOOK_EVENT"
     assert_same "Write|Edit" "$HOOK_MATCHER"
@@ -80,7 +100,7 @@ function test_extract_script_metadata_parses_event_matcher_and_command_correctly
 
 function test_extract_script_metadata_handles_missing_matcher_gracefully() {
     setup
-    extract_script_metadata "test-script3.sh"
+    extract_script_metadata "one-liners/test-script3.sh"
 
     assert_same "PostToolUse" "$HOOK_EVENT"
     assert_same "" "$HOOK_MATCHER"
@@ -90,11 +110,21 @@ function test_extract_script_metadata_handles_missing_matcher_gracefully() {
 
 function test_extract_script_metadata_supports_different_hook_events() {
     setup
-    extract_script_metadata "test-script2.sh"
+    extract_script_metadata "one-liners/test-script2.sh"
 
     assert_same "PreToolUse" "$HOOK_EVENT"
     assert_same "Read" "$HOOK_MATCHER"
     assert_same 'curl -H "Content-Type: application/json" -d '\''{"key": "value with \"quotes\"", "path": "/tmp/file name.txt"}'\'' https://api.example.com/webhook' "$HOOK_COMMAND"
+    teardown
+}
+
+function test_extract_script_metadata_handles_python_files() {
+    setup
+    extract_script_metadata "py-hooks/test-notification.py"
+
+    assert_same "Notification" "$HOOK_EVENT"
+    assert_same "*" "$HOOK_MATCHER"
+    assert_same "$TEST_DIR/py-hooks/test-notification.py" "$HOOK_COMMAND"
     teardown
 }
 
@@ -274,7 +304,7 @@ function test_get_user_choice_returns_correct_script_for_valid_input() {
     # Test valid choice: script 2
     local user_choice
     user_choice=$(echo "2" | get_user_choice 2>/dev/null | tr -d '\n\r ')
-    assert_same "test-script2.sh" "$user_choice"
+    assert_same "one-liners/test-script2.sh" "$user_choice"
 
     teardown
 }
@@ -282,10 +312,10 @@ function test_get_user_choice_returns_correct_script_for_valid_input() {
 function test_get_user_choice_fails_for_invalid_input() {
     setup
 
-    # Test invalid choice: script 5 (only 3 scripts exist)
+    # Test invalid choice: script 6 (only 5 scripts exist now)
     local choice_output
     set +e
-    choice_output=$(echo "5" | get_user_choice 2>&1)
+    choice_output=$(echo "6" | get_user_choice 2>&1)
     local exit_code=$?
     set -e
 

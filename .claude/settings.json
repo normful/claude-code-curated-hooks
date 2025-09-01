@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path | select(endswith(\".go\"))' | xargs -r -I {} sh -c 'gofmt -w \"$1\" && goimports -w \"$1\"' _ {}"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/norman/code/claude-code-curated-hooks/py-hooks/macos_desktop_notification.py"
+          },
+          {
+            "type": "command",
+            "command": "/Users/norman/code/claude-code-curated-hooks/py-hooks/macos_desktop_notification.py"
+          }
+        ]
+      }
+    ]
+  }
+}
