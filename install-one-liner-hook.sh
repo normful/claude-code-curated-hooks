@@ -112,7 +112,7 @@ install_hook() {
     local temp_file=$(mktemp)
     jq --arg event "$HOOK_EVENT" \
        --argjson matcher "$([[ "$matcher_value" == "null" ]] && echo "null" || echo "\"$HOOK_MATCHER\"")" \
-       --arg command "$HOOK_COMMAND" \
+       --argjson command "\"$HOOK_COMMAND\"" \
        '
        # Ensure hooks structure exists
        .hooks = (.hooks // {}) |
