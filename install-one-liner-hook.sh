@@ -51,15 +51,142 @@ extract_script_metadata() {
     echo "Event: $event"
     echo "Matcher: $matcher"
     echo "Command: $command"
+
+    # Return the extracted values
+    HOOK_EVENT="$event"
+    HOOK_MATCHER="$matcher"
+    HOOK_COMMAND="$command"
+}
+
+choose_installation_location() {
+    echo >&2
+    echo "Where would you like to install this hook?" >&2
+    echo >&2
+    echo "1. .claude/settings.local.json (personal project-specific settings)" >&2
+    echo "2. .claude/settings.json (team-shared project-specific settings)" >&2
+    echo "3. ~/.claude/settings.json (personal settings for all projects)" >&2
+    echo >&2
+
+    local choice
+    read -p "Enter your choice (1-3): " choice >&2
+
+    case "$choice" in
+        1)
+            echo ".claude/settings.local.json"
+            ;;
+        2)
+            echo ".claude/settings.json"
+            ;;
+        3)
+            echo "$HOME/.claude/settings.json"
+            ;;
+        *)
+            echo "Invalid choice. Please enter 1, 2, or 3." >&2
+            exit 1
+            ;;
+    esac
+}
+
+install_hook() {
+    local settings_file="$1"
+
+    echo
+    echo "Installing hook to: $settings_file"
+    echo "Event: $HOOK_EVENT"
+    echo "Matcher: $HOOK_MATCHER"
+    echo "Command: $HOOK_COMMAND"
+
+    # Create directory if it doesn't exist
+    local settings_dir=$(dirname "$settings_file")
+    if [[ ! -d "$settings_dir" ]]; then
+        mkdir -p "$settings_dir"
+        echo "Created directory: $settings_dir"
+    fi
+
+    # Initialize file with empty JSON if it doesn't exist
+    if [[ ! -f "$settings_file" ]]; then
+        echo '{}' > "$settings_file"
+        echo "Created new settings file: $settings_file"
+    fi
+
+    # Create the hook command object
+    local hook_command=$(jq -n \
+        --arg command "$HOOK_COMMAND" \
+        '{
+            type: "command",
+            command: $command
+        }')
+
+    # Add the hook to the settings file using the correct structure
+    local temp_file=$(mktemp)
+    if [[ -n "$HOOK_MATCHER" ]]; then
+        # Hook with matcher
+        jq --arg event "$HOOK_EVENT" \
+           --arg matcher "$HOOK_MATCHER" \
+           --argjson hook_cmd "$hook_command" \
+           '.hooks = (.hooks // {}) |
+            .hooks[$event] = (.hooks[$event] // []) |
+            if (.hooks[$event] | map(.matcher == $matcher) | any) then
+                .hooks[$event] = (.hooks[$event] | map(
+                    if .matcher == $matcher then
+                        .hooks += [$hook_cmd]
+                    else
+                        .
+                    end
+                ))
+            else
+                .hooks[$event] += [{matcher: $matcher, hooks: [$hook_cmd]}]
+            end' "$settings_file" > "$temp_file"
+    else
+        # Hook without matcher
+        jq --arg event "$HOOK_EVENT" \
+           --argjson hook_cmd "$hook_command" \
+           '.hooks = (.hooks // {}) |
+            .hooks[$event] = (.hooks[$event] // []) |
+            if (.hooks[$event] | length > 0 and (.hooks[$event][0] | has("matcher") | not)) then
+                .hooks[$event][0].hooks += [$hook_cmd]
+            else
+                .hooks[$event] = [{hooks: [$hook_cmd]}] + .hooks[$event]
+            end' "$settings_file" > "$temp_file"
+    fi
+    
+    if [[ $? -eq 0 ]]; then
+        mv "$temp_file" "$settings_file"
+        echo
+        echo "✓ Hook successfully installed!"
+        echo "  Event: $HOOK_EVENT"
+        echo "  Matcher: $HOOK_MATCHER"
+        echo "  Command: $HOOK_COMMAND"
+        echo "  Location: $settings_file"
+    else
+        rm -f "$temp_file"
+        echo "Error: Failed to install hook." >&2
+        exit 1
+    fi
+}
+
+check_dependencies() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "Error: jq is required but not installed." >&2
+        echo "Please install jq: https://jqlang.github.io/jq/download/" >&2
+        exit 1
+    fi
 }
 
 main() {
+    check_dependencies
+    
     list_available_scripts
 
     local script_name
     script_name=$(get_user_choice)
 
     extract_script_metadata "$script_name"
+
+    local settings_file
+    settings_file=$(choose_installation_location)
+
+    install_hook "$settings_file"
 }
 
 main
