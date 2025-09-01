@@ -1,0 +1,7 @@
+{
+    "hook_event_name": "Notification",
+    "session_id": "sess_abc123def456",
+    "transcript_path": "/Users/user/.claude/transcript_20240716_143022.json",
+    "cwd": "/Users/user/project",
+    "message": "Permission required: User needs to approve file modification in /etc/hosts"
+}
