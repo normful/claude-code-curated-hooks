@@ -4,8 +4,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 get_available_scripts() {
-    ls one-liner-shell-scripts/
+    ls "$SCRIPT_DIR/one-liner-shell-scripts/"
 }
 
 list_available_scripts() {
@@ -40,7 +43,7 @@ extract_script_metadata() {
     local script_name="$1"
     # Strip any remaining whitespace/newlines
     script_name=$(echo "$script_name" | tr -d '\n\r ')
-    local script_path="one-liner-shell-scripts/$script_name"
+    local script_path="$SCRIPT_DIR/one-liner-shell-scripts/$script_name"
 
     local event=$(sed -n '1s/^# event: //p' "$script_path")
     local matcher=$(sed -n '2s/^# matcher: //p' "$script_path")
@@ -62,8 +65,8 @@ choose_installation_location() {
     echo >&2
     echo "Where would you like to install this hook?" >&2
     echo >&2
-    echo "1. .claude/settings.local.json (personal project-specific settings)" >&2
-    echo "2. .claude/settings.json (team-shared project-specific settings)" >&2
+    echo "1. $(pwd)/.claude/settings.local.json (personal project-specific settings)" >&2
+    echo "2. $(pwd)/.claude/settings.json (team-shared project-specific settings)" >&2
     echo "3. ~/.claude/settings.json (personal settings for all projects)" >&2
     echo >&2
 
@@ -72,10 +75,10 @@ choose_installation_location() {
 
     case "$choice" in
         1)
-            echo ".claude/settings.local.json"
+            echo "$(pwd)/.claude/settings.local.json"
             ;;
         2)
-            echo ".claude/settings.json"
+            echo "$(pwd)/.claude/settings.json"
             ;;
         3)
             echo "$HOME/.claude/settings.json"

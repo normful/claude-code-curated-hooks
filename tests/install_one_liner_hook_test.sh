@@ -11,6 +11,9 @@ function setup() {
     TEST_SCRIPTS_DIR="$TEST_DIR/one-liner-shell-scripts"
     mkdir -p "$TEST_SCRIPTS_DIR"
     
+    # Override SCRIPT_DIR to point to test directory
+    SCRIPT_DIR="$TEST_DIR"
+    
     # Create test script files
     cat > "$TEST_SCRIPTS_DIR/test-script1.sh" << 'EOF'
 # event: PostToolUse
@@ -53,6 +56,9 @@ function test_get_available_scripts_empty_directory() {
     TEST_DIR=$(mktemp -d)
     mkdir -p "$TEST_DIR/one-liner-shell-scripts"
     cd "$TEST_DIR"
+    
+    # Override SCRIPT_DIR for this test
+    SCRIPT_DIR="$TEST_DIR"
     
     local result=$(get_available_scripts)
     assert_same "" "$result"
@@ -235,13 +241,13 @@ function test_choose_installation_location_option_1() {
     # Mock user input: choose option 1
     echo "1" | choose_installation_location >/dev/null 2>&1
     local result=$(echo "1" | choose_installation_location 2>/dev/null)
-    assert_same ".claude/settings.local.json" "$result"
+    assert_same "$(pwd)/.claude/settings.local.json" "$result"
 }
 
 function test_choose_installation_location_option_2() {
     # Mock user input: choose option 2
     local result=$(echo "2" | choose_installation_location 2>/dev/null)
-    assert_same ".claude/settings.json" "$result"
+    assert_same "$(pwd)/.claude/settings.json" "$result"
 }
 
 function test_choose_installation_location_option_3() {
