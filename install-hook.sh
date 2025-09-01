@@ -8,11 +8,23 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 get_available_scripts() {
-    ls "$SCRIPT_DIR/one-liners/"
+    # Get scripts from one-liners directory with prefix
+    for script in "$SCRIPT_DIR/one-liners/"*; do
+        if [[ -f "$script" ]]; then
+            echo "one-liners/$(basename "$script")"
+        fi
+    done
+    
+    # Get scripts from py-hooks directory with prefix
+    for script in "$SCRIPT_DIR/py-hooks/"*.py; do
+        if [[ -f "$script" ]]; then
+            echo "py-hooks/$(basename "$script")"
+        fi
+    done
 }
 
 list_available_scripts() {
-    echo "Available one-liner Claude Code hooks:"
+    echo "Available Claude Code hooks:"
     echo
 
     local -a options=($(get_available_scripts))
@@ -43,18 +55,32 @@ extract_script_metadata() {
     local script_name="$1"
     # Strip any remaining whitespace/newlines
     script_name=$(echo "$script_name" | tr -d '\n\r ')
-    local script_path="$SCRIPT_DIR/one-liners/$script_name"
-
-    local event=$(sed -n '1s/^# event: //p' "$script_path")
-    local matcher=$(sed -n '2s/^# matcher: //p' "$script_path")
-    local command=$(sed -n '3p' "$script_path")
+    local script_path="$SCRIPT_DIR/$script_name"
 
     echo "Selected: $script_name"
 
-    # Save the extracted values
-    HOOK_EVENT="$event"
-    HOOK_MATCHER="$matcher"
-    HOOK_COMMAND="$command"
+    # Check if it's a Python file or one-liner
+    if [[ "$script_name" == py-hooks/*.py ]]; then
+        # For Python files, extract event and matcher from comments
+        local event=$(sed -n 's/^# event: //p' "$script_path")
+        local matcher=$(sed -n 's/^# matcher: //p' "$script_path")
+        local command="$script_path"  # Use absolute path for Python files
+        
+        # Save the extracted values
+        HOOK_EVENT="$event"
+        HOOK_MATCHER="$matcher"
+        HOOK_COMMAND="$command"
+    else
+        # For one-liner scripts, use existing logic
+        local event=$(sed -n '1s/^# event: //p' "$script_path")
+        local matcher=$(sed -n '2s/^# matcher: //p' "$script_path")
+        local command=$(sed -n '3p' "$script_path")
+
+        # Save the extracted values
+        HOOK_EVENT="$event"
+        HOOK_MATCHER="$matcher"
+        HOOK_COMMAND="$command"
+    fi
 }
 
 choose_installation_location() {
