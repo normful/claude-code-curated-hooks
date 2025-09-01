@@ -11,3 +11,5 @@ It seems they can all be categorized into 3 general groups:
 This is my collection of the first two types above (one-liner shell scripts and longer scripts).
 
 I've chosen to write longer scripts with the https://github.com/GowayLee/cchooks library, which looked like the best library for doing that as of Sep 2025.
+
+See ./CLAUDE.md for details of how this repo is structured.
