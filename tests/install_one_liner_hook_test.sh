@@ -266,3 +266,31 @@ function test_choose_installation_location_exits_with_error_for_invalid_choice()
     assert_same "1" "$exit_code"
     assert_contains "Invalid choice" "$output"
 }
+
+# Tests for main function workflow components
+function test_get_user_choice_returns_correct_script_for_valid_input() {
+    setup
+
+    # Test valid choice: script 2
+    local user_choice
+    user_choice=$(echo "2" | get_user_choice 2>/dev/null | tr -d '\n\r ')
+    assert_same "test-script2.sh" "$user_choice"
+
+    teardown
+}
+
+function test_get_user_choice_fails_for_invalid_input() {
+    setup
+
+    # Test invalid choice: script 5 (only 3 scripts exist)
+    local choice_output
+    set +e
+    choice_output=$(echo "5" | get_user_choice 2>&1)
+    local exit_code=$?
+    set -e
+
+    assert_same "1" "$exit_code"
+    assert_contains "Invalid choice" "$choice_output"
+
+    teardown
+}
