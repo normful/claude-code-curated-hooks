@@ -109,46 +109,46 @@ install_hook() {
         echo "Created new settings file: $settings_file"
     fi
 
-    # Create the hook command object
-    local hook_command=$(jq -n \
-        --arg command "$HOOK_COMMAND" \
-        '{
-            type: "command",
-            command: $command
-        }')
-
-    # Add the hook to the settings file using the correct structure
+    # Normalize matcher (use null for no matcher)
+    local matcher_value="${HOOK_MATCHER:-null}"
+    
+    # Single unified operation: find matching entry or create new one
     local temp_file=$(mktemp)
-    if [[ -n "$HOOK_MATCHER" ]]; then
-        # Hook with matcher
-        jq --arg event "$HOOK_EVENT" \
-           --arg matcher "$HOOK_MATCHER" \
-           --argjson hook_cmd "$hook_command" \
-           '.hooks = (.hooks // {}) |
-            .hooks[$event] = (.hooks[$event] // []) |
-            if (.hooks[$event] | map(.matcher == $matcher) | any) then
-                .hooks[$event] = (.hooks[$event] | map(
-                    if .matcher == $matcher then
-                        .hooks += [$hook_cmd]
-                    else
-                        .
-                    end
-                ))
-            else
-                .hooks[$event] += [{matcher: $matcher, hooks: [$hook_cmd]}]
-            end' "$settings_file" > "$temp_file"
-    else
-        # Hook without matcher
-        jq --arg event "$HOOK_EVENT" \
-           --argjson hook_cmd "$hook_command" \
-           '.hooks = (.hooks // {}) |
-            .hooks[$event] = (.hooks[$event] // []) |
-            if (.hooks[$event] | length > 0 and (.hooks[$event][0] | has("matcher") | not)) then
-                .hooks[$event][0].hooks += [$hook_cmd]
-            else
-                .hooks[$event] = [{hooks: [$hook_cmd]}] + .hooks[$event]
-            end' "$settings_file" > "$temp_file"
-    fi
+    jq --arg event "$HOOK_EVENT" \
+       --argjson matcher "$([[ "$matcher_value" == "null" ]] && echo "null" || echo "\"$HOOK_MATCHER\"")" \
+       --arg command "$HOOK_COMMAND" \
+       '
+       # Ensure hooks structure exists
+       .hooks = (.hooks // {}) |
+       .hooks[$event] = (.hooks[$event] // []) |
+       
+       # Find existing entry that matches our criteria
+       if (.hooks[$event] | map(
+           if $matcher == null then 
+               (has("matcher") | not)
+           else 
+               (.matcher == $matcher)
+           end
+       ) | any) then
+           # Add to existing matching entry
+           .hooks[$event] = (.hooks[$event] | map(
+               if (($matcher == null and (has("matcher") | not)) or (.matcher == $matcher)) then
+                   .hooks += [{type: "command", command: $command}]
+               else
+                   .
+               end
+           ))
+       else
+           # Create new entry
+           .hooks[$event] += [
+               if $matcher == null then
+                   {hooks: [{type: "command", command: $command}]}
+               else
+                   {matcher: $matcher, hooks: [{type: "command", command: $command}]}
+               end
+           ]
+       end
+       ' "$settings_file" > "$temp_file"
     
     if [[ $? -eq 0 ]]; then
         mv "$temp_file" "$settings_file"
